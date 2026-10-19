@@ -1,0 +1,17 @@
+node_modules/
+# Datos de ejecución (estado, proyectos) – nunca al repositorio
+data/estado.json
+data/estado.json.tmp
+data/proyectos/
+data/*.json.tmp
+# Secretos / configuración local
+.env
+.env.*
+*.pem
+*.key
+config.local.json
+# Varios
+npm-debug.log*
+.DS_Store
+Thumbs.db
+*.pdf

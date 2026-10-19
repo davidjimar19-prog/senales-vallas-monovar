@@ -1,0 +1,29 @@
+# Render Blueprint – Señales y vallas (Monóvar)
+# Despliegue: Render → New → Blueprint → conecte este repositorio.
+services:
+  - type: web
+    name: senales-vallas-monovar
+    runtime: node
+    plan: free            # gratis: se duerme tras 15 min sin uso y el disco NO es persistente
+    region: frankfurt
+    branch: main
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: CODIGO_JEFE          # código del jefe de sección (se pide al crear el Blueprint)
+        sync: false
+      - key: CODIGOS_OPERARIOS    # lista separada por comas; opcional nombre: CODIGO:Nombre,CODIGO:Nombre
+        sync: false
+      - key: NOMBRE_JEFE
+        value: Jefe de sección
+      - key: DATA_DIR             # en plan gratuito, efímero; con disco use /var/data
+        value: ./data
+    # ── Persistencia real (plan de pago, p. ej. starter): descomente y ponga DATA_DIR=/var/data
+    # disk:
+    #   name: datos-senales
+    #   mountPath: /var/data
+    #   sizeGB: 1

@@ -1,0 +1,84 @@
+{
+ "_nota": "Catálogo y valores por defecto. Los códigos de acceso NO van aquí: use las variables de entorno CODIGO_JEFE y CODIGOS_OPERARIOS.",
+ "puerto": 3000,
+ "tipos": [
+  {
+   "id": "r308",
+   "codigo": "R-308",
+   "nombre": "Prohibido estacionar",
+   "total": 20,
+   "grupo": "senal"
+  },
+  {
+   "id": "r307",
+   "codigo": "R-307",
+   "nombre": "Prohibido parar y estacionar",
+   "total": 15,
+   "grupo": "senal"
+  },
+  {
+   "id": "r2",
+   "codigo": "R-2",
+   "nombre": "Stop",
+   "total": 8,
+   "grupo": "senal"
+  },
+  {
+   "id": "r1",
+   "codigo": "R-1",
+   "nombre": "Ceda el paso",
+   "total": 8,
+   "grupo": "senal"
+  },
+  {
+   "id": "s11",
+   "codigo": "S-11",
+   "nombre": "Sentido único",
+   "total": 8,
+   "grupo": "senal"
+  },
+  {
+   "id": "r101",
+   "codigo": "R-101",
+   "nombre": "Dirección prohibida",
+   "total": 8,
+   "grupo": "senal"
+  },
+  {
+   "id": "r400",
+   "codigo": "R-400",
+   "nombre": "Dirección obligatoria",
+   "total": 8,
+   "grupo": "senal"
+  },
+  {
+   "id": "s13",
+   "codigo": "S-13",
+   "nombre": "Paso para peatones",
+   "total": 6,
+   "grupo": "senal"
+  },
+  {
+   "id": "valla_metal",
+   "codigo": "",
+   "nombre": "Valla metálica",
+   "total": 40,
+   "grupo": "valla"
+  },
+  {
+   "id": "valla_naranja",
+   "codigo": "",
+   "nombre": "Valla de plástico naranja",
+   "total": 30,
+   "grupo": "valla"
+  },
+  {
+   "id": "cono",
+   "codigo": "",
+   "nombre": "Cono",
+   "total": 50,
+   "grupo": "valla"
+  }
+ ],
+ "operariosEditanTotales": false
+}

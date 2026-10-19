@@ -1,0 +1,23 @@
+{
+  "name": "senales-vallas",
+  "version": "1.0.0",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "osm": "bash scripts/descargar-osm.sh"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.17.0",
+    "leaflet": "^1.9.4",
+    "osmtogeojson": "^3.0.0-beta.5"
+  },
+  "optionalDependencies": {
+    "puppeteer-core": "^23.0.0"
+  },
+  "description": "Gestión de señales y vallas temporales – Ayuntamiento de Monóvar",
+  "engines": {
+    "node": ">=20"
+  }
+}

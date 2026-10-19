@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Señales y vallas temporales · Ayuntamiento</title>
+<link rel="stylesheet" href="vendor/leaflet.css">
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#1d2733}
+#app{display:flex;height:100%}
+#panel{width:300px;min-width:260px;max-width:30vw;background:#f5f7fa;border-right:1px solid #d6dbe1;display:flex;flex-direction:column;z-index:1000}
+#panel header{padding:10px 12px;background:#1f4e79;color:#fff}
+#panel header h1{font-size:17px;margin:0}#panel header small{opacity:.85}
+#sesion{padding:8px 12px;border-bottom:1px solid #d6dbe1;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#sesion input{flex:1;min-width:80px;padding:8px;font-size:16px;border:1px solid #b9c2cc;border-radius:6px}
+button{padding:8px 12px;font-size:15px;border:0;border-radius:6px;background:#1f4e79;color:#fff;cursor:pointer}
+button.sec{background:#e1e6ec;color:#1d2733}
+#lista{overflow-y:auto;flex:1;padding:6px}
+.grupo{font-size:12px;font-weight:700;text-transform:uppercase;color:#5a6672;margin:10px 6px 4px}
+.item{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #dde2e8;border-radius:8px;padding:6px;margin-bottom:6px;touch-action:none;user-select:none}
+.item.puede{cursor:grab}.item.agotado .ico{opacity:.35}
+.ico{width:42px;height:42px;flex:none}.ico svg{width:100%;height:100%}
+.info{flex:1;min-width:0}.info b{font-size:13.5px;display:block;line-height:1.2}.info .cod{font-size:11px;color:#6b7782}
+.cifras{font-size:12px;color:#33414e;margin-top:2px}.cifras .c{color:#b45309;font-weight:600}.cifras .a{color:#15803d;font-weight:600}
+.tot{display:flex;align-items:center;gap:2px;margin-top:3px;font-size:12px}
+.tot input{width:52px;padding:3px;font-size:14px;text-align:center;border:1px solid #b9c2cc;border-radius:4px}
+.tot button{padding:2px 8px;font-size:15px}
+#pie{font-size:11px;padding:6px 10px;color:#5a6672;border-top:1px solid #d6dbe1}
+#mapa{flex:1;position:relative;background:#eef0e8}
+#toggle{display:none}
+.ghost{position:fixed;width:48px;height:48px;pointer-events:none;z-index:5000;transform:translate(-50%,-50%);filter:drop-shadow(0 3px 4px #0006)}
+.marca{filter:drop-shadow(0 2px 2px #0007)}.marca svg{width:100%;height:100%}
+#recoger{position:absolute;left:12px;bottom:26px;z-index:1200;padding:16px 20px;border:3px dashed #b91c1c;background:#fee2e2e8;color:#b91c1c;border-radius:10px;font-weight:700;display:none}
+#recoger.on{background:#b91c1c;color:#fff}
+.proy{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px}.proy button{padding:5px 8px;font-size:12px}#indGuardado{font-size:12px;color:#166534}
+#selBar{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:1250;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;max-width:calc(100% - 20px)}
+#selBar:empty{display:none}#selBar button{padding:9px 12px;font-size:14px;border-radius:8px;box-shadow:0 2px 6px #0004}#selBar .n{background:#1d4ed8;color:#fff;padding:8px 12px;border-radius:8px;font-weight:700;box-shadow:0 2px 6px #0004}
+@media(max-width:600px){#selBar{gap:4px;bottom:26px}#selBar button{padding:7px 9px;font-size:13px}#selBar .n{padding:6px 9px;font-size:13px}}
+#selBar button.on{background:#1d4ed8!important;color:#fff!important}
+.mk.sel{outline:4px solid #2563eb;outline-offset:2px;box-shadow:0 0 0 8px #2563eb55}
+.mk.fantasma{border:3px dashed #6b7280;opacity:.45;filter:grayscale(1)}
+.tproy{max-height:45vh;overflow:auto;margin-top:8px;border:1px solid #d6dbe1;border-radius:8px}.tproy table{border-collapse:collapse;width:100%;font-size:14px}.tproy td{border-bottom:1px solid #e5e7eb;padding:4px 6px;vertical-align:middle}.tproy td.pi svg{width:26px;height:26px}.tproy tr.recogida{color:#6b7280}
+#modal label.op{display:flex;gap:8px;align-items:center;margin:8px 0}#modal label.op input{width:auto;margin:0}
+body.sinpdf .pdflink{display:none!important}
+@media (pointer:coarse){.leaflet-touch .leaflet-bar a{width:44px;height:44px;line-height:44px;font-size:22px}}
+.errSesion{flex-basis:100%;color:#b42318;font-size:14px;font-weight:600;margin-top:4px}.errSesion:empty{display:none}
+.pista{flex-basis:100%;background:#fff4e5;border-left:4px solid #f59e0b;padding:6px 8px;font-size:13px;margin-top:4px}
+#modal select{width:100%;padding:12px;font-size:17px;margin:6px 0;border:1px solid #b9c2cc;border-radius:8px}
+#aviso{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1300;background:#1d2733;color:#fff;padding:8px 14px;border-radius:6px;display:none;font-size:14px;max-width:90%}
+#estadoWs{font-size:11px;margin-left:auto}
+.leaflet-tooltip.calle{font-size:12px}
+@media (max-width:900px){
+ #panel{position:absolute;left:0;top:0;bottom:0;width:82vw;max-width:340px;transform:translateX(-100%);transition:transform .2s;box-shadow:2px 0 12px #0004}
+ #panel.abierto{transform:none;z-index:1500}
+ #cerrarPanel{display:inline-block!important}
+ #toggle{display:block;position:absolute;z-index:1100;top:10px;left:56px;box-shadow:0 1px 4px #0005}
+}
+#informe{display:none}
+.mk{width:34px;height:34px;border-radius:50%;padding:2px;background:#fff;border:4px solid #16a34a;box-sizing:border-box}.mk.planificada{border-color:#f59e0b;border-style:dashed}.mk.tenue{opacity:.35}.mk svg{width:100%;height:100%;display:block}
+#ordenes{padding:6px 12px;border-bottom:1px solid #d6dbe1;display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px}#ordenes select{flex:1;min-width:120px;padding:7px;font-size:15px;border-radius:6px;border:1px solid #b9c2cc}
+.cifras .p{color:#d97706;font-weight:600}
+#modal{position:fixed;inset:0;background:#0007;z-index:6000;display:none;align-items:center;justify-content:center;padding:16px}
+#modal .caja{background:#fff;border-radius:14px;max-width:440px;width:100%;padding:20px;font-size:17px;box-shadow:0 10px 30px #0006}
+#modal .caja h3{margin:0 0 8px;display:flex;gap:10px;align-items:center}#modal .caja h3 svg{width:44px;height:44px}
+#modal .bts{display:flex;flex-direction:column;gap:10px;margin-top:16px}#modal .bts button{padding:16px;font-size:18px;border-radius:10px}
+#modal input{width:100%;padding:12px;font-size:17px;margin:6px 0;border:1px solid #b9c2cc;border-radius:8px}
+.bfijar{background:#16a34a!important;font-weight:700}.bverde{background:#16a34a!important}.brojo{background:#b91c1c!important}
+.ley{display:inline-flex;align-items:center;gap:4px;margin-right:10px}.ley i{width:14px;height:14px;border-radius:50%;border:3px solid #16a34a;display:inline-block}.ley i.am{border-color:#f59e0b;border-style:dashed}
+#tabs{display:flex;border-bottom:1px solid #d6dbe1}#tabs button{flex:1;border-radius:0;background:#e1e6ec;color:#1d2733;padding:9px}#tabs button.act{background:#fff;font-weight:700;box-shadow:inset 0 -3px #1f4e79}
+#resumen{overflow-y:auto;flex:1;padding:8px;font-size:13px}#resumen .acc{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}#resumen .acc a,#resumen .acc button{font-size:13px;padding:6px 8px}
+.calle{background:#fff;border:1px solid #dde2e8;border-radius:8px;padding:6px 8px;margin-bottom:6px;cursor:pointer}.calle b{display:block}.calle .t{display:inline-flex;align-items:center;gap:3px;margin-right:8px}.calle svg{width:18px;height:18px}
+.chk{width:16px;height:16px;border:1.5px solid #000;display:inline-block}
+.num{background:#fff;border:1.5px solid #000;border-radius:9px;font:700 11px Arial;padding:0 4px;color:#000;box-shadow:none}
+.num:before{display:none}
+#pdfbtn{margin-left:4px}
+body.imprimiendo #selBar,body.imprimiendo #panel,body.imprimiendo #toggle,body.imprimiendo #recoger,body.imprimiendo #aviso,body.imprimiendo .leaflet-control-zoom{display:none!important}
+body.imprimiendo #app{display:block;height:auto}
+body.imprimiendo #mapa{width:1040px;height:640px;flex:none}
+body.imprimiendo #informe{display:block}
+#informe{font:12px Arial;color:#000;background:#fff;padding:8px}
+#informe h2{font-size:15px;margin:0 0 6px}#informe table{border-collapse:collapse;width:100%}
+#informe th,#informe td{border:1px solid #444;padding:3px 5px;text-align:left}#informe thead{display:table-header-group}#informe tr{page-break-inside:avoid}
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 14px;margin:4px 0 8px}.leyenda span{display:flex;align-items:center;gap:4px}.leyenda svg{width:20px;height:20px}
+#cabecera{display:none;font:700 16px Arial;padding:4px 8px;color:#000}
+body.imprimiendo #cabecera{display:block}
+body.hoja #mapa,body.hoja #cabecera{display:none!important}
+@media print{body.hoja #mapa{display:none!important}}
+@media print{@page{size:A4 landscape;margin:10mm}
+ html,body{height:auto;background:#fff}
+ #panel,#toggle,#recoger,#aviso,#selBar,.leaflet-control-zoom{display:none!important}
+ #app{display:block;height:auto}#mapa{width:277mm!important;height:170mm!important;page-break-after:always;background:#fff}
+ #informe{display:block}}
+</style></head><body>
+<div id="cabecera"></div>
+<div id="app">
+ <aside id="panel">
+  <header><button id="cerrarPanel" class="sec" style="display:none;float:right;padding:6px 10px;margin-left:6px" title="Cerrar">✕</button><button id="imprimir" class="sec" style="float:right;padding:6px 10px" title="Imprimir / PDF">🖨 Imprimir</button><h1>Almacén de señales y vallas</h1><small id="municipio">Cargando municipio…</small></header>
+  <div id="sesion"></div>
+  <div id="ordenes"></div>
+  <div id="tabs"><button data-v="lista" class="act">Almacén</button><button data-v="resumen">Por calle</button></div>
+  <div id="lista"></div>
+  <div id="resumen" style="display:none"></div>
+  <div id="pie"><span class="ley"><i></i>Colocada</span><span class="ley"><i class="am"></i>Planificada</span><br>Jefe de sección: arrastre del almacén al mapa para planificar (ámbar). Operario: toque una marca ámbar → «Fijar aquí» (verde). Toque una marca verde para recogerla.<br>Mapa: © colaboradores de <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> (ODbL) · <a href="/api/mapa/osm">Descargar extracto .osm</a><span class="pdflink"> · <a href="/api/informe.pdf" target="_blank">Descargar informe PDF</a></span></div>
+ </aside>
+ <main id="mapa"><button id="toggle">☰ Almacén</button><div id="recoger">⤺ Soltar aquí para recoger</div><div id="aviso"></div><div id="selBar"></div></main>
+ <div id="informe"></div>
+<div id="modal"><div class="caja"></div></div>
+</div>
+<script src="vendor/leaflet.js"></script>
+<script>
+// ---------- Iconos SVG ----------
+const circ=(fill,stroke,inner)=>`<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="${fill}" stroke="${stroke}" stroke-width="${stroke==='#fff'?3:10}"/>${inner||''}</svg>`;
+const rojoBlanco=inner=>`<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="47" fill="#fff" stroke="#c8102e" stroke-width="11"/>${inner||''}</svg>`;
+const azul=inner=>`<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="47" fill="#c8102e"/><circle cx="50" cy="50" r="37" fill="#0055a4"/>${inner||''}</svg>`;
+const cuad=inner=>`<svg viewBox="0 0 100 100"><rect x="4" y="4" width="92" height="92" rx="8" fill="#0055a4" stroke="#fff" stroke-width="3"/>${inner}</svg>`;
+const amarillo=(txt,size)=>`<svg viewBox="0 0 100 100"><rect x="3" y="18" width="94" height="64" rx="6" fill="#ffcc00" stroke="#111" stroke-width="4"/><text x="50" y="58" font-size="${size||20}" font-weight="700" text-anchor="middle" font-family="Arial">${txt}</text></svg>`;
+const vel=n=>rojoBlanco(`<text x="50" y="64" font-size="42" font-weight="700" text-anchor="middle" font-family="Arial">${n}</text>`);
+const ICONOS={
+ r308:azul('<line x1="22" y1="78" x2="78" y2="22" stroke="#c8102e" stroke-width="10"/>'),
+ r307:azul('<line x1="22" y1="78" x2="78" y2="22" stroke="#c8102e" stroke-width="10"/><line x1="22" y1="22" x2="78" y2="78" stroke="#c8102e" stroke-width="10"/>'),
+ r2:'<svg viewBox="0 0 100 100"><polygon points="30,3 70,3 97,30 97,70 70,97 30,97 3,70 3,30" fill="#c8102e" stroke="#fff" stroke-width="4"/><text x="50" y="62" font-size="30" font-weight="700" fill="#fff" text-anchor="middle" font-family="Arial">STOP</text></svg>',
+ r1:'<svg viewBox="0 0 100 100"><polygon points="4,10 96,10 50,92" fill="#c8102e" stroke-linejoin="round"/><polygon points="22,21 78,21 50,71" fill="#fff"/></svg>',
+ s11:cuad('<path d="M50 18 L72 46 H58 V82 H42 V46 H28 Z" fill="#fff"/>'),
+ r400:'<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#0055a4" stroke="#fff" stroke-width="3"/><path d="M22 44 H56 V30 L80 50 L56 70 V56 H22 Z" fill="#fff"/></svg>',
+ s13:cuad('<polygon points="50,12 88,82 12,82" fill="#fff"/><circle cx="52" cy="36" r="5" fill="#111"/><path d="M50 43 L44 60 L36 72 M50 43 L54 58 L62 72 M47 50 L40 55 M51 49 L60 54" stroke="#111" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="24" y="74" width="52" height="5" fill="#111"/>'),
+ carga:`<svg viewBox="0 0 100 100"><circle cx="50" cy="38" r="34" fill="#c8102e"/><circle cx="50" cy="38" r="26" fill="#0055a4"/><line x1="32" y1="56" x2="68" y2="20" stroke="#c8102e" stroke-width="8"/><rect x="14" y="76" width="72" height="20" fill="#fff" stroke="#111" stroke-width="2"/><text x="50" y="91" font-size="12" font-weight="700" text-anchor="middle" font-family="Arial">CARGA/DESC.</text></svg>`,
+ r101:circ('#c8102e','#fff','<rect x="18" y="41" width="64" height="18" fill="#fff"/>'),
+ r100:rojoBlanco(),
+ p18:'<svg viewBox="0 0 100 100"><polygon points="50,6 96,90 4,90" fill="#ffcc00" stroke="#c8102e" stroke-width="8" stroke-linejoin="round"/><circle cx="48" cy="40" r="5"/><path d="M47 47 L40 64 L30 74 M44 55 L58 52 M40 64 L48 76" stroke="#111" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M58 52 L66 70" stroke="#111" stroke-width="4"/><path d="M60 78 Q68 66 78 78 Z" fill="#111"/></svg>',
+ r301_20:vel(20), r301_30:vel(30),
+ desvio:amarillo('DESVÍO ➜',19), cortada:amarillo('CALLE CORTADA',13),
+ valla_metal:'<svg viewBox="0 0 100 100"><rect x="8" y="22" width="84" height="50" fill="none" stroke="#7a8590" stroke-width="5"/><g stroke="#9aa4ae" stroke-width="2">'+[18,28,38,48,58,68,78].map(x=>`<line x1="${x}" y1="22" x2="${x}" y2="72"/>`).join('')+'</g><path d="M4 86 H28 M72 86 H96 M16 72 V86 M84 72 V86" stroke="#555" stroke-width="5"/></svg>',
+ valla_naranja:'<svg viewBox="0 0 100 100"><rect x="6" y="20" width="88" height="54" rx="6" fill="#f97316" stroke="#9a3412" stroke-width="3"/><rect x="16" y="30" width="22" height="34" rx="4" fill="#fff8"/><rect x="62" y="30" width="22" height="34" rx="4" fill="#fff8"/><text x="50" y="54" font-size="12" font-weight="700" fill="#fff" text-anchor="middle" font-family="Arial">◆</text><path d="M10 74 L4 88 M90 74 L96 88" stroke="#9a3412" stroke-width="5"/></svg>',
+ barrera_ext:'<svg viewBox="0 0 100 100"><path d="M10 30 L30 70 L50 30 L70 70 L90 30 M10 70 L30 30 L50 70 L70 30 L90 70" stroke="#c8102e" stroke-width="6" fill="none"/><path d="M10 30 L30 70 L50 30 L70 70 L90 30" stroke="#fff" stroke-width="2" stroke-dasharray="6 6" fill="none"/><rect x="5" y="25" width="8" height="62" fill="#333"/><rect x="87" y="25" width="8" height="62" fill="#333"/></svg>',
+ cono:'<svg viewBox="0 0 100 100"><polygon points="44,8 56,8 78,84 22,84" fill="#f97316"/><polygon points="38,32 62,32 66,46 34,46" fill="#fff"/><polygon points="31,58 69,58 73,70 27,70" fill="#fff"/><rect x="12" y="84" width="76" height="9" rx="3" fill="#ea580c"/></svg>'
+};
+const icono=id=>ICONOS[id]||rojoBlanco('<text x="50" y="62" font-size="28" text-anchor="middle">?</text>');
+
+// ---------- Estado ----------
+let sesion=JSON.parse(sessionStorage.getItem('sesion')||'null');
+let proyectos={},guardadoManualVisto={},stock=[],colocadas=[],ordenes=[],ws,marcas=new Map(),ordenSel=localStorage.getItem('ordenSel')||'';
+const visibles=()=>ordenSel?colocadas.filter(c=>c.orden===ordenSel):colocadas;
+const nomOrden=id=>(ordenes.find(o=>o.id===id)||{}).nombre||'';
+const estTxt=e=>e==='planificada'?'🟠 Planificada':'🟢 Colocada';
+const $=s=>document.querySelector(s);
+const aviso=(t,ms=2500)=>{const a=$('#aviso');a.textContent=t;a.style.display='block';clearTimeout(a._t);a._t=setTimeout(()=>a.style.display='none',ms)};
+const enviar=m=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify(m));else aviso('Sin conexión con el servidor')};
+
+// ---------- Mapa ----------
+const mapa=L.map('mapa',{zoomControl:true,scrollWheelZoom:true,touchZoom:true,doubleClickZoom:true,preferCanvas:true,attributionControl:true,maxZoom:20,minZoom:11});
+mapa.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>').addAttribution('© colaboradores de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · ODbL · datos servidos localmente');
+const ANCHO={motorway:7,trunk:6,primary:6,secondary:5,tertiary:4.5,residential:3.5,living_street:3,unclassified:3,service:2,pedestrian:3.5,footway:1.2,path:1,track:1.5,steps:1.2,cycleway:1.2};
+const COLOR={motorway:'#e892a2',trunk:'#f9b29c',primary:'#fcd6a4',secondary:'#f7fabf',tertiary:'#ffffff',pedestrian:'#dddde8',footway:'#fa8072',path:'#fa8072',track:'#996600',steps:'#fa8072',cycleway:'#0000ff'};
+const renderer=L.canvas({padding:.5,tolerance:6});
+Promise.all([fetch('/api/mapa/meta').then(r=>r.json()),fetch('/api/mapa/geojson').then(r=>r.json())]).then(([meta,gj])=>{
+ $('#municipio').textContent=meta.nombre+' · datos OSM '+meta.fecha.slice(0,10);
+ const b=L.latLngBounds(meta.bbox);mapa.setMaxBounds(b.pad(0.3));mapa.setView(meta.centro,16);
+ const areas=[],calles=[],lim=[];
+ for(const f of gj.features){const p=f.properties||{},g=f.geometry&&f.geometry.type;if(!g)continue;
+  if(p.boundary==='administrative'&&/Polygon/.test(g))lim.push(f);
+  else if(p.highway&&/LineString/.test(g))calles.push(f);
+  else if((p.building||p.landuse||p.waterway)&&g!=='Point')areas.push(f);}
+ L.geoJSON(areas,{renderer,interactive:false,style:f=>{const p=f.properties;
+  if(p.building)return{color:'#c4b6a6',weight:.6,fillColor:'#d9d0c9',fillOpacity:1};
+  if(p.waterway)return{color:'#aad3df',weight:2,fill:false};
+  const c={residential:'#e0dfdf',industrial:'#ebdbe8',farmland:'#eef0d5',vineyard:'#c8dca0',orchard:'#aedfa3',retail:'#ffd6d1',meadow:'#cdebb0',forest:'#add19e'}[p.landuse]||'#e8e8e0';
+  return{stroke:false,fillColor:c,fillOpacity:.8}}}).addTo(mapa);
+ calles.sort((a,b)=>(ANCHO[a.properties.highway]||2)-(ANCHO[b.properties.highway]||2));
+ L.geoJSON(calles,{renderer,style:f=>({color:'#bbb',weight:(ANCHO[f.properties.highway]||2)+2,lineCap:'round'})}).addTo(mapa);
+ L.geoJSON(calles,{renderer,style:f=>{const h=f.properties.highway;return{color:COLOR[h]||'#fff',weight:ANCHO[h]||2,lineCap:'round',dashArray:/footway|path|steps|track/.test(h)?'3 4':null}},
+  onEachFeature:(f,l)=>{if(f.properties.name)l.bindTooltip(f.properties.name,{sticky:true,className:'calle'})}}).addTo(mapa);
+ callesNombre=calles.filter(f=>f.properties.name);flechas.datos=calles.filter(f=>['yes','true','1','-1'].includes(f.properties.oneway)&&f.properties.highway!=='footway');flechas.dibujar();
+ L.geoJSON(lim,{renderer,interactive:false,style:{color:'#7b3f99',weight:2.5,dashArray:'8 6',fill:false}}).addTo(mapa);
+ for(const f of gj.features){const p=f.properties||{};if(f.geometry&&f.geometry.type==='Point'&&p.place&&p.name)
+  L.marker([f.geometry.coordinates[1],f.geometry.coordinates[0]],{interactive:false,icon:L.divIcon({className:'',html:`<div style="font:600 12px system-ui;color:#333;text-shadow:0 0 3px #fff;white-space:nowrap">${p.name}</div>`})}).addTo(mapa);}
+}).catch(e=>aviso('No se pudo cargar el mapa local: '+e,8000));
+
+// ---------- Flechas de sentido único (canvas propio, no interactivo) ----------
+const ZOOM_FLECHAS=17, SEP_FLECHAS=70; // zoom mínimo y separación en píxeles (configurable)
+const flechas={datos:[],cv:document.createElement('canvas'),dibujar(){
+ const cv=this.cv,sz=mapa.getSize(),dpr=devicePixelRatio||1;cv.width=sz.x*dpr;cv.height=sz.y*dpr;cv.style.width=sz.x+'px';cv.style.height=sz.y+'px';
+ const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,sz.x,sz.y);
+ if(mapa.getZoom()<ZOOM_FLECHAS||!this.datos.length)return;
+ const vis=mapa.getBounds().pad(0.1);g.fillStyle='#2b4a7a';
+ for(const f of this.datos){const rev=f.properties.oneway==='-1';const lines=f.geometry.type==='LineString'?[f.geometry.coordinates]:f.geometry.coordinates;
+  for(let c of lines){if(!c.some(([x,y])=>vis.contains([y,x])))continue;if(rev)c=c.slice().reverse();
+   const pts=c.map(([x,y])=>mapa.latLngToContainerPoint([y,x]));let resto=SEP_FLECHAS/2;
+   for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i],dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);let d=resto;
+    while(d<len){const x=a.x+dx*d/len,y=a.y+dy*d/len,ang=Math.atan2(dy,dx);g.save();g.translate(x,y);g.rotate(ang);
+     g.beginPath();g.moveTo(6,0);g.lineTo(-4,-4.5);g.lineTo(-1.5,0);g.lineTo(-4,4.5);g.closePath();g.fill();g.restore();d+=SEP_FLECHAS}
+    resto=d-len;}}}}};
+flechas.cv.style.cssText='position:absolute;left:0;top:0;pointer-events:none;z-index:450';
+mapa.getContainer().appendChild(flechas.cv);
+let rafF;mapa.on('move zoomend resize',()=>{cancelAnimationFrame(rafF);rafF=requestAnimationFrame(()=>flechas.dibujar())});
+
+// ---------- Calle más cercana (local) ----------
+let callesNombre=[];
+function calleCercana(lat,lng){const k=Math.cos(lat*Math.PI/180);let best=null,bd=1e18;
+ for(const f of callesNombre){const L2=f.geometry.type==='LineString'?[f.geometry.coordinates]:f.geometry.coordinates;
+  for(const c of L2)for(let i=1;i<c.length;i++){const ax=(c[i-1][0]-lng)*k,ay=c[i-1][1]-lat,bx=(c[i][0]-lng)*k,by=c[i][1]-lat,dx=bx-ax,dy=by-ay;
+   let t=dx||dy?-(ax*dx+ay*dy)/(dx*dx+dy*dy):0;t=Math.max(0,Math.min(1,t));const x=ax+t*dx,y=ay+t*dy,d=x*x+y*y;if(d<bd){bd=d;best=f.properties.name}}}
+ return best?best+' ('+Math.round(Math.sqrt(bd)*111320)+' m)':'—'}
+
+// ---------- Informe / impresión ----------
+function prepararInforme(modo){modo=modo||'informe';const T=Object.fromEntries(stock.map(t=>[t.id,t]));const ahora=new Date().toLocaleString('es-ES');
+ document.body.classList.add('imprimiendo');$('#cabecera').textContent='Señales y vallas – Monóvar · '+ahora;document.body.classList.toggle('hoja',modo==='hoja');
+ const V=visibles();const usados=[...new Set(V.map(c=>c.tipo))];
+ $('#informe').innerHTML=`<h2>Señales y vallas – Monóvar · ${ahora}</h2><div>${ordenSel?'Orden de trabajo: <b>'+nomOrden(ordenSel)+'</b> · ':''}Elementos: ${V.length} (🟢 ${V.filter(c=>c.estado!=='planificada').length} colocadas · 🟠 ${V.filter(c=>c.estado==='planificada').length} planificadas)</div><div><span class="ley"><i></i>Colocada</span><span class="ley"><i class="am"></i>Planificada</span></div>
+ <div class="leyenda">${usados.map(id=>`<span>${icono(id)} ${T[id]?.nombre||id} ${T[id]?.codigo||''}</span>`).join('')}</div>
+ <table><thead><tr><th>Nº</th><th>Tipo</th><th>Código</th><th>Calle más cercana</th><th>Coordenadas</th><th>Estado</th><th>Orden</th><th>Creada / colocada</th><th>Por</th></tr></thead><tbody>
+ ${V.map((c,i)=>`<tr><td>${i+1}</td><td>${T[c.tipo]?.nombre||c.tipo}</td><td>${T[c.tipo]?.codigo||''}</td><td>${c.calle?c.calle+' ('+c.dist+' m)':'Sin calle identificada'}</td><td>${c.lat.toFixed(6)}, ${c.lng.toFixed(6)}</td><td>${estTxt(c.estado)}</td><td>${nomOrden(c.orden)}</td><td>${new Date(c.colocadaEn||c.fecha).toLocaleString('es-ES')}</td><td>${c.colocadaPor||c.creadaPor||c.rol||''}</td></tr>`).join('')||'<tr><td colspan=9>No hay elementos colocados</td></tr>'}</tbody></table>
+ <h2 style="margin-top:14px;page-break-before:always">Resumen por calle</h2>${tablaCalles(false)}<p style="font-size:10px">Mapa: © colaboradores de OpenStreetMap (ODbL)</p>`;
+ if(modo==='hoja'){$('#cabecera').textContent='';$('#informe').innerHTML=`<h2>Hoja de trabajo del operario – Señales y vallas – Monóvar</h2><div>${ordenSel?'Orden: <b>'+nomOrden(ordenSel)+'</b> · ':'Todas las órdenes · '}Fecha: ${ahora} · Operario: ________________________</div><br>${tablaCalles(true)}`}
+ V.forEach((c,i)=>{const m=marcas.get(c.id);m&&m.bindTooltip(String(i+1),{permanent:true,direction:'top',offset:[0,-14],className:'num'}).openTooltip()});
+ mapa.invalidateSize({animate:false});
+ if(V.length)mapa.fitBounds(L.latLngBounds(V.map(c=>[c.lat,c.lng])).pad(0.15),{animate:false,maxZoom:18});
+ flechas.dibujar();}
+const fmtT=(T,id,v)=>`${v.n} ${T[id]?.nombre||id} <small>(${v.col?'🟢'+v.col:''}${v.col&&v.plan?' ':''}${v.plan?'🟠'+v.plan:''})</small>`;
+const tablaCalles=(conChk)=>{const T=Object.fromEntries(stock.map(t=>[t.id,t]));const R=resumenCalles();
+ return `<table><thead><tr>${conChk?'<th>✓</th>':''}<th>Calle</th><th>Elementos</th><th>Total</th>${conChk?'<th>Observaciones</th>':''}</tr></thead><tbody>${R.map(g=>`<tr>${conChk?'<td><span class="chk"></span></td>':''}<td>${g.calle}</td><td>${Object.entries(g.tipos).map(([id,v])=>`<span style="display:inline-flex;align-items:center;gap:3px;margin-right:8px"><span style="width:16px;height:16px;display:inline-block">${icono(id)}</span>${fmtT(T,id,v)}</span>`).join('')}${g.calle==='Sin calle identificada'?'<br><small>'+g.items.map(c=>c.lat.toFixed(5)+','+c.lng.toFixed(5)).join('; ')+'</small>':''}</td><td>${g.total}</td>${conChk?'<td style="width:25%"></td>':''}</tr>`).join('')||'<tr><td colspan=5>Sin elementos en calle</td></tr>'}
+ <tr><td ${conChk?'colspan=3':'colspan=2'}><b>TOTAL</b></td><td><b>${R.reduce((a,g)=>a+g.total,0)}</b> <small>(🟢${R.reduce((a,g)=>a+g.col,0)} 🟠${R.reduce((a,g)=>a+g.plan,0)})</small></td>${conChk?'<td></td>':''}</tr></tbody></table>`};
+function resumenCalles(){const g={};for(const c of visibles()){const k=c.calle||'Sin calle identificada';(g[k]=g[k]||{calle:k,tipos:{},total:0,items:[],col:0,plan:0});const v=g[k].tipos[c.tipo]=g[k].tipos[c.tipo]||{n:0,col:0,plan:0};v.n++;const e=c.estado==='planificada'?'plan':'col';v[e]++;g[k][e]++;g[k].total++;g[k].items.push(c)}
+ return Object.values(g).sort((a,b)=>a.calle==='Sin calle identificada'?1:b.calle==='Sin calle identificada'?-1:a.calle.localeCompare(b.calle,'es'))}
+function pintarResumen(){const T=Object.fromEntries(stock.map(t=>[t.id,t]));const R=resumenCalles();
+ $('#resumen').innerHTML=`<div class="acc"><button id="impHoja">🖨 Hoja de trabajo</button><a href="/api/resumen.csv?orden=${ordenSel}"><button class="sec">CSV</button></a><a class="pdflink" href="/api/hoja.pdf?orden=${ordenSel}" target="_blank"><button class="sec">PDF</button></a></div>
+ <div>${ordenSel?'Orden: <b>'+nomOrden(ordenSel)+'</b><br>':''}<b>${R.length}</b> calles · <b>${R.reduce((a,g)=>a+g.total,0)}</b> elementos (🟢${R.reduce((a,g)=>a+g.col,0)} colocadas · 🟠${R.reduce((a,g)=>a+g.plan,0)} planificadas)</div>`+
+ R.map((g,i)=>`<div class="calle" data-i="${i}"><b>${g.calle} – ${g.total}</b>${Object.entries(g.tipos).map(([id,v])=>`<span class="t">${icono(id)} ${fmtT(T,id,v)}</span>`).join('')}</div>`).join('');
+ $('#impHoja').onclick=()=>{prepararInforme('hoja');setTimeout(()=>print(),700)};
+ $('#resumen').querySelectorAll('.calle').forEach(d=>d.onclick=()=>{const g=R[d.dataset.i];mapa.fitBounds(L.latLngBounds(g.items.map(c=>[c.lat,c.lng])).pad(0.5),{maxZoom:18});if(innerWidth<=900)$('#panel').classList.remove('abierto')});}
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('act',x===b));$('#lista').style.display=b.dataset.v==='lista'?'':'none';$('#resumen').style.display=b.dataset.v==='resumen'?'':'none'});
+function terminarInforme(){document.body.classList.remove('imprimiendo','hoja');marcas.forEach(m=>m.unbindTooltip());mapa.invalidateSize({animate:false});flechas.dibujar()}
+window.prepararInforme=prepararInforme;
+$('#imprimir').onclick=()=>{prepararInforme();setTimeout(()=>{window.print()},700)};
+addEventListener('afterprint',()=>{if(!location.search.includes('informe'))terminarInforme()});
+
+// ---------- Diálogos grandes (táctiles) ----------
+function dialogo(html,botones,foco,alAbrir){return new Promise(res=>{const M=$('#modal');M.querySelector('.caja').innerHTML=html+'<div class="bts">'+botones.map((b,i)=>`<button data-i="${i}" class="${b.cls||''}">${b.t}</button>`).join('')+'</div>';
+ M.style.display='flex';if(alAbrir)alAbrir();if(foco){const f=M.querySelector(foco);if(f){setTimeout(()=>f.focus(),50);f.onkeydown=e=>{if(e.key==='Enter'){const b=M.querySelector('.bts button');b&&b.click()}}}}M.querySelectorAll('.bts button').forEach(b=>b.onclick=()=>{M.style.display='none';res(botones[b.dataset.i].v)});
+ M.onclick=e=>{if(e.target===M){M.style.display='none';res(null)}};})}
+// ---------- Órdenes de trabajo ----------
+let ordenesCargadas=false;
+function pintarOrdenes(){const d=$('#ordenes');if(ordenesCargadas&&ordenSel&&!ordenes.some(o=>o.id===ordenSel)){ordenSel='';localStorage.removeItem('ordenSel')}
+ d.innerHTML=`<span>Orden:</span><select id="selOrden"><option value="">${sesion&&sesion.rol==='admin'?'— Seleccione orden —':'Todas las órdenes'}</option>${ordenes.map(o=>`<option value="${o.id}" ${o.id===ordenSel?'selected':''}>${o.fecha} · ${o.nombre}</option>`).join('')}</select>${sesion&&sesion.rol==='admin'?'<button id="nuevaOrden">+ Nueva orden</button>':''}${sesion&&sesion.rol==='admin'&&!ordenSel?`<div class="pista">${ordenes.length?'Seleccione una orden':'Cree una orden de trabajo'} para planificar (o arrastre un elemento y se la pediremos).</div>`:''}${barraProyecto()}`;
+ $('#selOrden').onchange=e=>{ordenSel=e.target.value;localStorage.setItem('ordenSel',ordenSel);pintarOrdenes();pintarMarcas();pintarResumen()};
+ const gp=$('#guardarProy');if(gp)gp.onclick=()=>{guardadoManualVisto[ordenSel]=true;enviar({t:'guardar_proyecto',orden:ordenSel})};
+ const vp=$('#verProy');if(vp)vp.onclick=()=>verProyecto(ordenSel);
+ const cp=$('#cargarPlan');if(cp)cp.onclick=()=>reutilizarPlan(ordenSel);
+ const oc=$('#ordenColocada');if(oc)oc.onclick=()=>accionOrden('colocar');const orr=$('#ordenRecogida');if(orr)orr.onclick=()=>accionOrden('recoger');
+ const n=$('#nuevaOrden');if(n)n.onclick=async()=>{const hoy=new Date().toISOString().slice(0,10);
+  const ok=await dialogo(`<h3>Nueva orden de trabajo</h3><label>Nombre<input id="onom" placeholder="p. ej. Fiestas de septiembre"></label><label>Fecha<input id="ofec" type="date" value="${hoy}"></label>`,[{t:'Crear orden',v:1,cls:'bverde'},{t:'Cancelar',v:0,cls:'sec'}]);
+  if(ok){const nombre=document.getElementById('onom').value.trim(),fecha=document.getElementById('ofec').value;if(!nombre)return aviso('Indique un nombre');pendienteOrden=nombre;enviar({t:'orden_nueva',nombre,fecha})}};}
+let pendienteOrden=null;
+// ---------- Proyectos (plan guardado de cada orden) ----------
+const hhmm=iso=>iso?new Date(iso).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):'';
+const ESTP={planificada:'🟠 Planificada',colocada:'🟢 Colocada',recogida:'⚪ Recogida'};
+function barraProyecto(){if(!ordenSel)return '';const pr=proyectos[ordenSel]||{items:[]};const n=pr.items.length,rec=pr.items.filter(i=>i.estado==='recogida').length;
+ const fh=iso=>new Date(iso).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+ const ind=[pr.base?'Base '+fh(pr.base):'',pr.ultimaModificacion||pr.autoGuardado?'Última modificación '+hhmm(pr.ultimaModificacion||pr.autoGuardado)+' (guardado automático)':'Sin cambios aún',pr.guardadoManual?'Proyecto guardado ✓ '+hhmm(pr.guardadoManual):''].filter(Boolean).join(' · ');
+ const act=colocadas.filter(c=>c.orden===ordenSel).length;
+ return `<div class="proy"><button class="sec" id="verProy">📋 Ver proyecto (${n}${rec?', '+rec+' recogidas':''})</button>${sesion&&sesion.rol==='admin'?'<button id="guardarProy">💾 Guardar proyecto</button>':''}${sesion&&sesion.rol==='admin'&&rec?`<button class="bverde" id="cargarPlan">🔁 Cargar plan en el mapa (${rec})</button>`:''}${sesion&&act?'<button class="sec" id="ordenColocada">✅ Toda la orden: colocada</button><button class="sec" id="ordenRecogida">⤺ Toda la orden: recogida</button>':''}<span id="indGuardado">${ind}</span></div>`}
+// ---------- Selección múltiple y acciones por lote ----------
+const sel=new Set();let modoSel=false;
+function alternarSel(id){sel.has(id)?sel.delete(id):sel.add(id);pintarMarcas();pintarSelBar()}
+function pintarSelBar(){const b=$('#selBar');if(!b)return;if(!sesion){b.innerHTML='';sel.clear();modoSel=false;return}
+ const items=colocadas.filter(c=>sel.has(c.id)),am=items.filter(c=>c.estado==='planificada').length,admin=sesion.rol==='admin';
+ b.innerHTML=`<button id="bModoSel" class="sec ${modoSel?'on':''}" title="También Mayús+clic sobre las marcas">☑ Selección múltiple${modoSel?' ✓':''}</button>`+(items.length?`<span class="n">${items.length} seleccionada${items.length>1?'s':''}</span>${am?'<button id="bSelCol" class="bverde">🟢 Marcar colocadas</button>':''}<button id="bSelRec" class="brojo">⤺ Recoger seleccionadas</button>${admin&&am?'<button id="bSelQui" class="sec">✖ Quitar ámbar</button>':''}<button id="bSelNo" class="sec">Deseleccionar</button>`:'');
+ L.DomEvent.disableClickPropagation(b);L.DomEvent.disableScrollPropagation(b);
+ $('#bModoSel').onclick=()=>{modoSel=!modoSel;if(!modoSel)sel.clear();pintarMarcas();pintarSelBar();aviso(modoSel?'Selección múltiple: toque las marcas para añadirlas o quitarlas':'Selección múltiple desactivada',3000)};
+ const ids=()=>items.map(c=>c.id),fin=()=>{sel.clear();pintarMarcas();pintarSelBar()};
+ const q=x=>document.getElementById(x);
+ if(q('bSelCol'))q('bSelCol').onclick=async()=>{if(await dialogo(`<h3>🟢 Marcar colocadas</h3><div>Se marcarán como <b>colocadas (verde)</b> ${am} marca(s) ámbar seleccionadas.</div>`,[{t:'Sí, marcar colocadas',v:1,cls:'bverde'},{t:'Cancelar',v:0,cls:'sec'}])){enviar({t:'lote',accion:'colocar',ids:ids()});fin()}};
+ if(q('bSelRec'))q('bSelRec').onclick=async()=>{if(await dialogo(`<h3>⤺ Recoger seleccionadas</h3><div>Se recogerán <b>${items.length}</b> elemento(s) y volverán al almacén. El plan de la orden se conserva.</div>`,[{t:'Sí, recoger',v:1,cls:'brojo'},{t:'Cancelar',v:0,cls:'sec'}])){enviar({t:'lote',accion:'recoger',ids:ids()});fin()}};
+ if(q('bSelQui'))q('bSelQui').onclick=async()=>{if(await dialogo(`<h3>✖ Quitar planificadas</h3><div>Se quitarán del mapa ${am} marca(s) ámbar seleccionadas (vuelven al almacén; quedan en el proyecto como recogidas).</div>`,[{t:'Sí, quitar',v:1,cls:'brojo'},{t:'Cancelar',v:0,cls:'sec'}])){enviar({t:'lote',accion:'quitar',ids:ids()});fin()}};
+ if(q('bSelNo'))q('bSelNo').onclick=fin;}
+async function accionOrden(acc){const lista=colocadas.filter(c=>c.orden===ordenSel),am=lista.filter(c=>c.estado==='planificada').length,nom=nomOrden(ordenSel);
+ const ok=acc==='colocar'?await dialogo(`<h3>✅ Toda la orden: colocada</h3><div>Se marcarán como <b>colocadas (verde)</b> las ${am} marca(s) ámbar de la orden «${nom}».</div>`,[{t:'Sí, todo colocado',v:1,cls:'bverde'},{t:'Cancelar',v:0,cls:'sec'}])
+  :await dialogo(`<h3>⤺ Toda la orden: recogida</h3><div>Se recogerán al almacén los <b>${lista.length}</b> elementos de la orden «${nom}». El plan queda guardado y podrá reutilizarlo.</div>`,[{t:'Sí, recoger toda la orden',v:1,cls:'brojo'},{t:'Cancelar',v:0,cls:'sec'}]);
+ if(ok)enviar({t:'orden_lote',orden:ordenSel,accion:acc})}
+addEventListener('keydown',e=>{if(e.key==='Escape'&&sel.size){sel.clear();pintarMarcas();pintarSelBar()}});
+async function verProyecto(id){const pr=proyectos[id];const T=Object.fromEntries(stock.map(t=>[t.id,t]));const o=ordenes.find(x=>x.id===id)||(pr&&pr.orden)||{};
+ const it=(pr&&pr.items)||[];const cnt=e=>it.filter(i=>i.estado===e).length;
+ const filas=it.map((i,k)=>`<tr class="${i.estado}"><td>${k+1}</td><td class="pi">${icono(i.tipo)}</td><td>${(T[i.tipo]||{nombre:i.tipo}).nombre}<br><small>${i.calle||'Sin calle'}</small></td><td>${ESTP[i.estado]||i.estado}<br><small>${new Date(i.fecha).toLocaleDateString('es-ES')}${i.colocadaEn?' · col. '+new Date(i.colocadaEn).toLocaleDateString('es-ES'):''}${i.recogidaEn?' · rec. '+new Date(i.recogidaEn).toLocaleDateString('es-ES'):''}</small></td></tr>`).join('');
+ const bt=[];if(sesion&&sesion.rol==='admin'&&it.length)bt.push({t:'🔁 Reutilizar plan',v:'reu',cls:'bverde'});bt.push({t:'Cerrar',v:0,cls:'sec'});
+ const r=await dialogo(`<h3>📋 Proyecto: ${o.nombre||''}</h3><div style="font-size:14px">${o.fecha||''} · ${it.length} elementos: ${cnt('planificada')} planificados, ${cnt('colocada')} colocados, ${cnt('recogida')} recogidos.<br>${pr&&pr.base?'Base: '+new Date(pr.base).toLocaleString('es-ES'):''}${pr&&(pr.ultimaModificacion||pr.autoGuardado)?' · Última modificación: '+new Date(pr.ultimaModificacion||pr.autoGuardado).toLocaleString('es-ES')+' (guardado automático)':''}${pr&&pr.guardadoManual?' · Proyecto guardado ✓ '+new Date(pr.guardadoManual).toLocaleString('es-ES'):''}</div>
+  <div class="tproy">${it.length?`<table>${filas}</table>`:'<p>Este proyecto aún no tiene elementos. Arrastre señales al mapa para planificarlo.</p>'}</div>`,bt);
+ if(r==='reu')reutilizarPlan(id)}
+async function reutilizarPlan(id){const pr=proyectos[id];const o=ordenes.find(x=>x.id===id)||pr.orden;const rec=pr.items.filter(i=>i.estado==='recogida').length;
+ const anio=new Date().getFullYear(),sug=/\b(19|20)\d\d\b/.test(o.nombre)?o.nombre.replace(/\b(19|20)\d\d\b/,anio+1):o.nombre+' '+(new Date(o.fecha).getFullYear()<anio?anio:anio+1);
+ const ok=await dialogo(`<h3>🔁 Reutilizar plan</h3><div>Se volverán a planificar en <b>ámbar</b> los elementos del proyecto «${o.nombre}» en sus mismas ubicaciones (según stock disponible).</div>
+  <label class="op"><input type="radio" name="dest" value="misma" ${rec?'checked':''}> En esta misma orden (${rec} recogidos)</label>
+  <label class="op"><input type="radio" name="dest" value="nueva" ${rec?'':'checked'}> En una orden nueva (los ${pr.items.length} elementos)</label>
+  <div id="dNueva"><label>Nombre<input id="rnom" value="${sug.replace(/"/g,'&quot;')}"></label><label>Fecha<input id="rfec" type="date" value="${new Date().toISOString().slice(0,10)}"></label></div>`,
+  [{t:'Planificar de nuevo',v:1,cls:'bverde'},{t:'Cancelar',v:0,cls:'sec'}],null,()=>{const up=()=>{document.getElementById('dNueva').style.display=document.querySelector('input[name=dest]:checked').value==='nueva'?'':'none'};document.querySelectorAll('input[name=dest]').forEach(r=>r.onchange=up);up()});
+ if(!ok)return;const nueva=document.querySelector('input[name=dest]:checked').value==='nueva';
+ if(nueva){const nombre=document.getElementById('rnom').value.trim();if(!nombre)return aviso('Indique un nombre para la orden nueva',4000);enviar({t:'reutilizar',origen:id,nombre,fecha:document.getElementById('rfec').value})}
+ else{if(!rec)return aviso('No hay elementos recogidos que replanificar en esta orden',4000);enviar({t:'reutilizar',origen:id})}}
+// Marcas fantasma: elementos del proyecto ya recogidos
+const fantasmas=L.layerGroup();
+function pintarFantasmas(){fantasmas.clearLayers();if(!ordenSel||!proyectos[ordenSel])return;const T=Object.fromEntries(stock.map(t=>[t.id,t]));
+ for(const i of proyectos[ordenSel].items.filter(i=>i.estado==='recogida')){
+  const m=L.marker([i.lat,i.lng],{icon:L.divIcon({className:'marca',html:`<div class="mk fantasma">${icono(i.tipo)}</div>`,iconSize:[34,34],iconAnchor:[17,17]}),keyboard:false,zIndexOffset:-100,interactive:true,bubblingMouseEvents:false});
+  m.on('click',()=>dialogo(`<h3>${icono(i.tipo)}<span>${(T[i.tipo]||{nombre:i.tipo}).nombre}</span></h3><div>⚪ Recogida (del proyecto «${nomOrden(ordenSel)}»)</div><div style="font-size:14px;color:#444;margin-top:6px">${i.calle||'Sin calle identificada'}<br>${(i.historial||[]).map(h=>(ESTP[h.estado]||h.estado)+' '+new Date(h.fecha).toLocaleString('es-ES')+(h.por?' · '+h.por:'')).join('<br>')}</div>`,[{t:'Cerrar',v:0,cls:'sec'}]));
+  fantasmas.addLayer(m)}}
+// ---------- Toque sobre una marca ----------
+async function tocarMarca(c){const T=stock.find(t=>t.id===c.tipo)||{nombre:c.tipo};
+ const info=`<h3>${icono(c.tipo)}<span>${T.nombre} <small>${T.codigo||''}</small></span></h3><div>${estTxt(c.estado)}${c.orden?' · Orden: '+nomOrden(c.orden):''}</div>
+ <div style="font-size:14px;color:#444;margin-top:6px">${c.calle||'Sin calle identificada'}<br>Creada ${new Date(c.fecha).toLocaleString('es-ES')} por ${c.creadaPor||c.rol||'—'}${c.colocadaEn?'<br>Colocada '+new Date(c.colocadaEn).toLocaleString('es-ES')+' por '+c.colocadaPor:''}</div>`;
+ if(!sesion)return dialogo(info,[{t:'Cerrar',v:0,cls:'sec'}]);
+ const bt=[];if(c.estado==='planificada'){bt.push({t:'📍 Fijar aquí<br><small style="font-size:14px;font-weight:400">Confirmar colocada</small>',v:'confirmar',cls:'bfijar'});if(sesion.rol==='admin')bt.push({t:'🗑 Eliminar planificación',v:'eliminar',cls:'brojo'})}
+ else bt.push({t:'⤺ Recoger al almacén',v:'recoger',cls:'brojo'});bt.push({t:'Cancelar',v:0,cls:'sec'});
+ const r=await dialogo(info,bt);if(!r)return;
+ if(r==='confirmar')enviar({t:'confirmar',id:c.id});
+ else if(await dialogo(`<h3>¿Seguro?</h3><div>${r==='recoger'?'Se recogerá «'+T.nombre+'» y volverá al almacén.':'Se eliminará la planificación de «'+T.nombre+'».'}</div>`,[{t:'Sí, '+(r==='recoger'?'recoger':'eliminar'),v:1,cls:'brojo'},{t:'No',v:0,cls:'sec'}]))enviar({t:'recoger',id:c.id});}
+
+// ---------- Panel ----------
+function pintarSesion(){const s=$('#sesion');
+ if(sesion){s.innerHTML=`<span>👷 ${sesion.nombre||(sesion.rol==='admin'?'Jefe de sección':'Operario')}</span><span id="estadoWs"></span><button class="sec" id="salir">Salir</button>`;$('#salir').onclick=salir}
+ else{s.innerHTML=`<input id="codigo" type="password" inputmode="numeric" autocomplete="off" placeholder="Código (jefe u operario)"><button id="entrar">Entrar</button><span id="estadoWs"></span><div id="errSesion" class="errSesion"></div>`;
+  const ir=async()=>{const b=$('#entrar');b.disabled=true;const r=await entrarCodigo($('#codigo').value);b.disabled=false;
+   if(r!==true){$('#errSesion').textContent=r;$('#codigo').select();aviso(r,4000)}};
+  $('#entrar').onclick=ir;$('#codigo').onkeydown=e=>{if(e.key==='Enter')ir()};}
+ pintarWs();}
+// Login con código: devuelve true o un mensaje de error en español
+async function entrarCodigo(codigo){codigo=String(codigo||'').trim();if(!codigo)return 'Escriba su código';
+ let r;try{r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({codigo})})}catch(e){return 'Sin conexión con el servidor. Inténtelo de nuevo.'}
+ if(r.status===401)return 'Código incorrecto';if(!r.ok)return 'Error del servidor ('+r.status+')';
+ sesion=await r.json();sessionStorage.setItem('sesion',JSON.stringify(sesion));conectar();pintarSesion();pintarLista();pintarMarcas();pintarOrdenes();
+ aviso(sesion.rol==='admin'?'Ha entrado como jefe de sección: '+(ordenes.length?'seleccione una orden y arrastre elementos al mapa':'cree una orden de trabajo para planificar'):'Ha entrado como operario: toque una marca ámbar y pulse «Fijar aquí»',5000);return true}
+// Diálogo con campo de código (sin prompt() nativo)
+async function pedirCodigo(motivo){let err='';
+ for(;;){const ok=await dialogo(`<h3>🔑 Introduzca su código</h3><div>${motivo}</div><input id="dlgCodigo" type="password" inputmode="numeric" autocomplete="off" placeholder="Código">${err?`<div class="errSesion">${err}</div>`:''}`,[{t:'Entrar',v:1,cls:'bverde'},{t:'Cancelar',v:0,cls:'sec'}],'#dlgCodigo');
+  if(!ok)return false;const r=await entrarCodigo(document.getElementById('dlgCodigo').value);if(r===true)return true;err=r}}
+function avisoOperario(){dialogo(`<h3>👷 Ha entrado como operario</h3><div>Los operarios <b>no arrastran</b> elementos: solo el <b>jefe de sección</b> (con su código de jefe) planifica arrastrando del almacén al mapa.</div><div style="margin-top:8px">Para confirmar una señal: toque una <b>marca ámbar</b> en el mapa y pulse <b>«📍 Fijar aquí»</b>.</div>`,
+ [{t:'Entendido',v:0,cls:'bverde'},{t:'Cambiar de usuario',v:1,cls:'sec'}]).then(v=>{if(v)salir()})}
+function salir(){sessionStorage.removeItem('sesion');sesion=null;conectar();pintarSesion();pintarLista();pintarMarcas();pintarOrdenes()}
+// Orden de trabajo para una planificación: elegir existente o crear en el momento
+let pendienteColocar=null;
+async function elegirOrden(){const hoy=new Date().toISOString().slice(0,10);
+ const ok=await dialogo(`<h3>📋 Orden de trabajo</h3><div>Cada elemento planificado pertenece a una orden de trabajo.${ordenes.length?' Elija una existente o cree una nueva.':' Cree la primera orden.'}</div>
+  ${ordenes.length?`<label>Orden existente<select id="dlgOrden"><option value="">— Nueva orden —</option>${ordenes.map(o=>`<option value="${o.id}">${o.fecha} · ${o.nombre}</option>`).join('')}</select></label>`:''}
+  <div id="dlgNueva"><label>Nombre de la nueva orden<input id="onom" placeholder="p. ej. Fiestas de septiembre"></label><label>Fecha<input id="ofec" type="date" value="${hoy}"></label></div>`,
+  [{t:'Continuar',v:1,cls:'bverde'},{t:'Cancelar',v:0,cls:'sec'}],'#onom',()=>{const sel=document.getElementById('dlgOrden');if(sel)sel.onchange=()=>document.getElementById('dlgNueva').style.display=sel.value?'none':''});
+ if(!ok)return null;const sel=document.getElementById('dlgOrden');
+ if(sel&&sel.value)return {id:sel.value};
+ const nombre=document.getElementById('onom').value.trim(),fecha=document.getElementById('ofec').value;
+ if(!nombre){aviso('Indique un nombre para la orden',4000);return elegirOrden()}return {nombre,fecha}}
+async function planificarEn(tipo,lat,lng){
+ if(!ordenSel){const o=await elegirOrden();if(!o)return aviso('Planificación cancelada: no se eligió orden de trabajo',4000);
+  if(o.id){ordenSel=o.id;localStorage.setItem('ordenSel',ordenSel);pintarOrdenes();pintarMarcas();pintarResumen()}
+  else{pendienteOrden=o.nombre;pendienteColocar={tipo,lat,lng};enviar({t:'orden_nueva',nombre:o.nombre,fecha:o.fecha});return}}
+ enviar({t:'colocar',tipo,lat,lng,orden:ordenSel})}
+function pintarWs(){pintarSelBar();const e=$('#estadoWs');if(e)e.textContent=ws&&ws.readyState===1?'🟢 en línea':'🔴 desconectado'}
+function pintarLista(){const l=$('#lista');l.innerHTML='';let grupo=null;
+ for(const t of stock){if(t.grupo!==grupo){grupo=t.grupo;l.insertAdjacentHTML('beforeend',`<div class="grupo">${grupo==='valla'?'Vallas y conos':'Señales verticales'}</div>`)}
+  const d=document.createElement('div');d.className='item'+(sesion&&sesion.rol==='admin'&&t.enAlmacen>0?' puede':'')+(t.enAlmacen<=0?' agotado':'');d.dataset.tipo=t.id;
+  d.innerHTML=`<div class="ico">${icono(t.id)}</div><div class="info"><b>${t.nombre}</b>${t.codigo?`<span class="cod">${t.codigo}</span>`:''}
+   <div class="cifras">En calle <span class="c">${t.enCalle}</span> · Planif. <span class="p">${t.planificadas||0}</span> · Almacén <span class="a">${t.enAlmacen}</span> · Total <b style="display:inline">${t.total}</b></div>
+   ${sesion&&sesion.editaTotales?`<div class="tot">Total: <button class="sec" data-d="-1">−</button><input type="number" min="${t.enCalle}" value="${t.total}"><button class="sec" data-d="1">+</button></div>`:''}</div>`;
+  const inp=d.querySelector('input');
+  if(inp){const fijar=n=>{const f=t.enCalle+(t.planificadas||0);if(!(n>=f)){aviso('El total no puede ser menor que las '+f+' unidades fuera del almacén');inp.value=t.total;return}enviar({t:'total',tipo:t.id,total:n})};
+   inp.onchange=()=>fijar(parseInt(inp.value));d.querySelectorAll('.tot button').forEach(b=>b.onclick=()=>fijar(t.total+ +b.dataset.d));
+   d.querySelector('.tot').addEventListener('pointerdown',e=>e.stopPropagation());}
+  d.addEventListener('pointerdown',e=>iniciarArrastre(e,t));l.appendChild(d);}}
+
+// ---------- Arrastre desde almacén (pointer events, táctil incluido) ----------
+function iniciarArrastre(e,t){
+ if(e.target.closest('.tot'))return;
+ if(!sesion){e.preventDefault();pedirCodigo('Para planificar elementos (arrastrarlos al mapa) entre con el código del <b>jefe de sección</b>.');return}
+ if(sesion.rol!=='admin'){e.preventDefault();avisoOperario();return}
+ if(t.enAlmacen<=0){aviso('Sin unidades de '+t.nombre+' en almacén');return}
+ e.preventDefault();const g=document.createElement('div');g.className='ghost';g.innerHTML=icono(t.id);document.body.appendChild(g);
+ const mover=ev=>{g.style.left=ev.clientX+'px';g.style.top=ev.clientY+'px';
+  if(innerWidth<=900&&ev.clientX>$('#panel').getBoundingClientRect().right-20)$('#panel').classList.remove('abierto')};
+ mover(e);
+ const fin=ev=>{document.removeEventListener('pointermove',mover);document.removeEventListener('pointerup',fin);document.removeEventListener('pointercancel',fin);g.remove();
+  if(ev.type==='pointercancel')return;
+  const m=$('#mapa').getBoundingClientRect(),p=$('#panel').getBoundingClientRect();
+  const sobrePanel=$('#panel').classList.contains('abierto')||innerWidth>900?(ev.clientX<p.right&&ev.clientX>=p.left):false;
+  if(!sobrePanel&&ev.clientX>=m.left&&ev.clientX<=m.right&&ev.clientY>=m.top&&ev.clientY<=m.bottom){
+   const ll=mapa.containerPointToLatLng([ev.clientX-m.left,ev.clientY-m.top]);planificarEn(t.id,ll.lat,ll.lng);}
+  else aviso('Suelte el elemento sobre el mapa para planificarlo');};
+ document.addEventListener('pointermove',mover);document.addEventListener('pointerup',fin);document.addEventListener('pointercancel',fin);}
+
+// ---------- Marcas en el mapa ----------
+let ultimo={x:0,y:0};document.addEventListener('pointermove',e=>ultimo={x:e.clientX,y:e.clientY},true);
+document.addEventListener('touchmove',e=>{const t=e.touches[0];if(t)ultimo={x:t.clientX,y:t.clientY}},{capture:true,passive:true});
+const dentro=(el,p)=>{const r=el.getBoundingClientRect();return el.offsetParent!==null&&r.width&&p.x>=r.left&&p.x<=r.right&&p.y>=r.top&&p.y<=r.bottom};
+const puedeMover=c=>!!(sesion&&sesion.rol==='admin'&&c.estado==='planificada');
+const fijarArrastre=(m,c)=>{m.options.draggable=puedeMover(c);if(m.dragging)puedeMover(c)?m.dragging.enable():m.dragging.disable()};
+function pintarMarcas(){for(const id of [...sel])if(!colocadas.some(c=>c.id===id))sel.delete(id);if(mapa._loaded&&!mapa.hasLayer(fantasmas))fantasmas.addTo(mapa);pintarFantasmas();const ids=new Set(colocadas.map(c=>c.id));
+ for(const[id,m]of marcas)if(!ids.has(id)){mapa.removeLayer(m);marcas.delete(id)}
+ const tipos=Object.fromEntries(stock.map(t=>[t.id,t]));
+ for(const c of colocadas){let m=marcas.get(c.id);
+  if(!m){m=L.marker([c.lat,c.lng],{icon:L.divIcon({className:'marca',html:'',iconSize:[34,34],iconAnchor:[17,17]}),draggable:puedeMover(c),autoPan:true});
+   m.on('dragstart',()=>{$('#recoger').style.display='block';m._arr=true});
+   m.on('drag',()=>{$('#recoger').classList.toggle('on',dentro($('#recoger'),ultimo)||dentro($('#panel'),ultimo))});
+   m.on('dragend',()=>{const r=$('#recoger');const alAlmacen=dentro(r,ultimo)||dentro($('#panel'),ultimo);r.style.display='none';r.classList.remove('on');m._arr=false;
+    if(alAlmacen){enviar({t:'recoger',id:c.id});}
+    else{const ll=m.getLatLng();enviar({t:'mover',id:c.id,lat:ll.lat,lng:ll.lng})}});
+   m.on('click',e=>{if(sesion&&(modoSel||(e.originalEvent&&e.originalEvent.shiftKey)))return alternarSel(c.id);tocarMarca(colocadas.find(x=>x.id===c.id)||c)});m.addTo(mapa);marcas.set(c.id,m);}
+  else if(!m._arr)m.setLatLng([c.lat,c.lng]);
+  fijarArrastre(m,c);
+  const t=tipos[c.tipo]||{nombre:c.tipo};
+  const k=c.estado+'|'+sel.has(c.id)+'|'+(c.estado==='planificada'&&ordenSel&&c.orden!==ordenSel);
+  if(m._k!==k){m._k=k;m.setIcon(L.divIcon({className:'marca',html:`<div class="mk ${c.estado==='planificada'?'planificada':''} ${k.endsWith('true')?'tenue':''} ${sel.has(c.id)?'sel':''}">${icono(c.tipo)}</div>`,iconSize:[34,34],iconAnchor:[17,17]}));fijarArrastre(m,c)}
+  m.setZIndexOffset(c.estado==='colocada'?100:0);}}
+
+// ---------- WebSocket ----------
+function conectar(){if(ws){ws.onclose=null;ws.close()}
+ ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws'+(sesion?'?token='+sesion.token:''));
+ ws.onopen=pintarWs;
+ ws.onmessage=e=>{const m=JSON.parse(e.data);
+  if(m.t==='estado'){if('rol'in m&&sesion&&!m.rol){sessionStorage.removeItem('sesion');sesion=null;pintarSesion();aviso('Sesión caducada, vuelva a entrar')}
+   stock=m.stock;colocadas=m.colocadas;ordenes=m.ordenes||[];proyectos=m.proyectos||{};ordenesCargadas=true;if(pendienteOrden){const o=ordenes.filter(o=>o.nombre===pendienteOrden).pop();if(o){ordenSel=o.id;localStorage.setItem('ordenSel',ordenSel);pendienteOrden=null;
+     if(pendienteColocar){const pc=pendienteColocar;pendienteColocar=null;enviar({t:'colocar',tipo:pc.tipo,lat:pc.lat,lng:pc.lng,orden:ordenSel})}}}pintarOrdenes();pintarLista();pintarMarcas();pintarResumen();pintarSelBar()}
+  else if(m.t==='info'){aviso(m.msg,6000);if(m.tipo==='reutilizado'&&m.orden&&m.orden!==ordenSel){ordenSel=m.orden;localStorage.setItem('ordenSel',ordenSel);pintarOrdenes();pintarMarcas();pintarResumen()}}
+  else if(m.t==='error'){pendienteColocar=null;pendienteOrden=null;aviso(m.msg,5000)}};
+ ws.onclose=()=>{pintarWs();setTimeout(conectar,2000)};}
+$('#cerrarPanel').onclick=()=>$('#panel').classList.remove('abierto');
+mapa.on('click',()=>$('#panel').classList.remove('abierto'));
+L.DomEvent.disableClickPropagation($('#toggle'));
+$('#toggle').onclick=()=>$('#panel').classList.toggle('abierto');
+pintarSesion();pintarOrdenes();conectar();
+// PDF directo solo si el servidor lo genera (en la app de escritorio lo genera la propia app); si no, Imprimir → Guardar como PDF
+if(!/Electron/.test(navigator.userAgent))fetch('/api/capacidades').then(r=>r.json()).then(c=>{if(!c.pdf)document.body.classList.add('sinpdf')}).catch(()=>document.body.classList.add('sinpdf'));
+</script></body></html>
