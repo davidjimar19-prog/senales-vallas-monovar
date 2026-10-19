@@ -6,18 +6,18 @@
 <style>
 *{box-sizing:border-box}html,body{margin:0;height:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#1d2733}
 #app{display:flex;height:100%}
-#panel{width:300px;min-width:260px;max-width:30vw;background:#f5f7fa;border-right:1px solid #d6dbe1;display:flex;flex-direction:column;z-index:1000}
+#panel{width:300px;min-width:260px;max-width:30vw;background:#f5f7fa;border-right:1px solid #d6dbe1;display:flex;flex-direction:column;z-index:1000;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}
 #panel header{padding:10px 12px;background:#1f4e79;color:#fff}
 #panel header h1{font-size:17px;margin:0}#panel header small{opacity:.85}
 #sesion{padding:8px 12px;border-bottom:1px solid #d6dbe1;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 #sesion input{flex:1;min-width:80px;padding:8px;font-size:16px;border:1px solid #b9c2cc;border-radius:6px}
 button{padding:8px 12px;font-size:15px;border:0;border-radius:6px;background:#1f4e79;color:#fff;cursor:pointer}
 button.sec{background:#e1e6ec;color:#1d2733}
-#lista{overflow-y:auto;flex:1;padding:6px}
+#lista{overflow-y:auto;flex:1;min-height:0;padding:6px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}
 .grupo{font-size:12px;font-weight:700;text-transform:uppercase;color:#5a6672;margin:10px 6px 4px}
-.item{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #dde2e8;border-radius:8px;padding:6px;margin-bottom:6px;touch-action:none;user-select:none}
-.item.puede{cursor:grab}.item.agotado .ico{opacity:.35}
-.ico{width:42px;height:42px;flex:none}.ico svg{width:100%;height:100%}
+.item{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #dde2e8;border-radius:8px;padding:6px;margin-bottom:6px;touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.item.puede .ico{cursor:grab}.item.agotado .ico{opacity:.35}
+.ico{width:42px;height:42px;flex:none;touch-action:none}.ico svg{width:100%;height:100%}
 .info{flex:1;min-width:0}.info b{font-size:13.5px;display:block;line-height:1.2}.info .cod{font-size:11px;color:#6b7782}
 .cifras{font-size:12px;color:#33414e;margin-top:2px}.cifras .c{color:#b45309;font-weight:600}.cifras .a{color:#15803d;font-weight:600}
 .tot{display:flex;align-items:center;gap:2px;margin-top:3px;font-size:12px}
@@ -50,6 +50,8 @@ body.sinpdf .pdflink{display:none!important}
 @media (max-width:900px){
  #panel{position:absolute;left:0;top:0;bottom:0;width:82vw;max-width:340px;transform:translateX(-100%);transition:transform .2s;box-shadow:2px 0 12px #0004}
  #panel.abierto{transform:none;z-index:1500}
+ #panel{max-height:100%;height:auto}
+ #panel #lista,#panel #resumen{flex:none;overflow:visible;min-height:auto}
  #cerrarPanel{display:inline-block!important}
  #toggle{display:block;position:absolute;z-index:1100;top:10px;left:56px;box-shadow:0 1px 4px #0005}
 }
@@ -65,7 +67,7 @@ body.sinpdf .pdflink{display:none!important}
 .bfijar{background:#16a34a!important;font-weight:700}.bverde{background:#16a34a!important}.brojo{background:#b91c1c!important}
 .ley{display:inline-flex;align-items:center;gap:4px;margin-right:10px}.ley i{width:14px;height:14px;border-radius:50%;border:3px solid #16a34a;display:inline-block}.ley i.am{border-color:#f59e0b;border-style:dashed}
 #tabs{display:flex;border-bottom:1px solid #d6dbe1}#tabs button{flex:1;border-radius:0;background:#e1e6ec;color:#1d2733;padding:9px}#tabs button.act{background:#fff;font-weight:700;box-shadow:inset 0 -3px #1f4e79}
-#resumen{overflow-y:auto;flex:1;padding:8px;font-size:13px}#resumen .acc{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}#resumen .acc a,#resumen .acc button{font-size:13px;padding:6px 8px}
+#resumen{overflow-y:auto;flex:1;min-height:0;padding:8px;font-size:13px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}#resumen .acc{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}#resumen .acc a,#resumen .acc button{font-size:13px;padding:6px 8px}
 .calle{background:#fff;border:1px solid #dde2e8;border-radius:8px;padding:6px 8px;margin-bottom:6px;cursor:pointer}.calle b{display:block}.calle .t{display:inline-flex;align-items:center;gap:3px;margin-right:8px}.calle svg{width:18px;height:18px}
 .chk{width:16px;height:16px;border:1.5px solid #000;display:inline-block}
 .num{background:#fff;border:1.5px solid #000;border-radius:9px;font:700 11px Arial;padding:0 4px;color:#000;box-shadow:none}
@@ -358,11 +360,13 @@ function pintarLista(){const l=$('#lista');l.innerHTML='';let grupo=null;
   if(inp){const fijar=n=>{const f=t.enCalle+(t.planificadas||0);if(!(n>=f)){aviso('El total no puede ser menor que las '+f+' unidades fuera del almacén');inp.value=t.total;return}enviar({t:'total',tipo:t.id,total:n})};
    inp.onchange=()=>fijar(parseInt(inp.value));d.querySelectorAll('.tot button').forEach(b=>b.onclick=()=>fijar(t.total+ +b.dataset.d));
    d.querySelector('.tot').addEventListener('pointerdown',e=>e.stopPropagation());}
-  d.addEventListener('pointerdown',e=>iniciarArrastre(e,t));l.appendChild(d);}}
+  d.querySelector('.ico').addEventListener('pointerdown',e=>iniciarArrastre(e,t));l.appendChild(d);}}
 
 // ---------- Arrastre desde almacén (pointer events, táctil incluido) ----------
 function iniciarArrastre(e,t){
- if(e.target.closest('.tot'))return;
+ // Solo el icono de la señal es asa de arrastre; el resto del panel hace scroll.
+ if(!e.target.closest||!e.target.closest('.ico')||e.target.closest('.tot'))return;
+ if(e.pointerType==='mouse'&&e.button!==0)return;
  if(!sesion){e.preventDefault();pedirCodigo('Para planificar elementos (arrastrarlos al mapa) entre con el código del <b>jefe de sección</b>.');return}
  if(sesion.rol!=='admin'){e.preventDefault();avisoOperario();return}
  if(t.enAlmacen<=0){aviso('Sin unidades de '+t.nombre+' en almacén');return}
@@ -414,6 +418,7 @@ function conectar(){if(ws){ws.onclose=null;ws.close()}
   else if(m.t==='info'){aviso(m.msg,6000);if(m.tipo==='reutilizado'&&m.orden&&m.orden!==ordenSel){ordenSel=m.orden;localStorage.setItem('ordenSel',ordenSel);pintarOrdenes();pintarMarcas();pintarResumen()}}
   else if(m.t==='error'){pendienteColocar=null;pendienteOrden=null;aviso(m.msg,5000)}};
  ws.onclose=()=>{pintarWs();setTimeout(conectar,2000)};}
+if(window.L&&L.DomEvent){L.DomEvent.disableScrollPropagation($('#panel'));L.DomEvent.disableClickPropagation($('#panel'))}
 $('#cerrarPanel').onclick=()=>$('#panel').classList.remove('abierto');
 mapa.on('click',()=>$('#panel').classList.remove('abierto'));
 L.DomEvent.disableClickPropagation($('#toggle'));
